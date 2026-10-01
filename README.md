@@ -1,23 +1,23 @@
 # GitHub Copilot AI Cost Calculator
 
-Calculateur statique du coût de fonctionnement des modèles disponibles dans GitHub Copilot.
-Il convertit les volumes d'input, output, cached input et cache write en coût USD et en
+A static cost calculator for models available in GitHub Copilot.
+It converts input, output, cached input, and cache write token volumes into USD costs and
 GitHub AI Credits.
 
-## Utilisation locale
+## Local usage
 
-Ouvrez directement `index.html` dans un navigateur, ou servez le dossier avec un serveur HTTP :
+Open `index.html` directly in a browser, or serve the directory with an HTTP server:
 
 ```powershell
 python -m http.server 8000
 ```
 
-Puis ouvrez `http://localhost:8000`.
+Then open `http://localhost:8000`.
 
 ## GitHub Pages
 
-Dans les paramètres du dépôt, activez **Pages**, choisissez **Deploy from a branch**, puis
-sélectionnez la branche à publier et le dossier racine `/`.
+In the repository settings, enable **Pages**, choose **Deploy from a branch**, then select
+the branch to publish and the root directory `/`.
 
-Les tarifs proviennent de la documentation
+Pricing data comes from the
 [Models and pricing for GitHub Copilot](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing).
