@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta
+    name="description"
+    content="Calculez le coût en dollars et en GitHub AI Credits des modèles disponibles dans GitHub Copilot."
+  >
+  <title>GitHub Copilot Model Pricing Calculator</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("clawpilotTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .page-shell {
+      width: min(1600px, 100%);
+      margin: 0 auto;
+      padding: 40px 24px 56px;
+    }
+
+    .hero {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--cp-accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      letter-spacing: -0.025em;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1.05;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+    }
+
+    .hero-copy {
+      max-width: 620px;
+      margin: 12px 0 0;
+      color: var(--cp-text-muted);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .disclaimer {
+      max-width: 760px;
+      margin: 16px 0 0;
+      padding: 12px 14px;
+      border-left: 3px solid var(--cp-warning);
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    .source-link {
+      flex: 0 0 auto;
+      color: var(--cp-link);
+      font-weight: 600;
+      text-underline-offset: 3px;
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      background: var(--cp-surface);
+    }
+
+    .tokens-panel {
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .section-description {
+      margin: 6px 0 0;
+      color: var(--cp-text-muted);
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .reset-button {
+      padding: 8px 12px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      background: var(--cp-surface);
+      color: var(--cp-text);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .reset-button:hover {
+      border-color: var(--cp-border-strong);
+      background: var(--cp-surface-soft);
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 0.8125rem;
+      font-weight: 700;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      outline: none;
+      background: var(--cp-bg-elevated);
+      color: var(--cp-text);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .field input:focus {
+      border-color: var(--cp-accent);
+      box-shadow: 0 0 0 3px var(--cp-accent-soft);
+    }
+
+    .field-hint {
+      color: var(--cp-text-soft);
+      font-size: 0.75rem;
+    }
+
+    .models-header {
+      padding: 24px;
+      border-bottom: 1px solid var(--cp-border);
+    }
+
+    .table-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .search {
+      width: min(360px, 100%);
+      padding: 10px 12px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      outline: none;
+      background: var(--cp-bg-elevated);
+      color: var(--cp-text);
+    }
+
+    .search:focus {
+      border-color: var(--cp-accent);
+      box-shadow: 0 0 0 3px var(--cp-accent-soft);
+    }
+
+    .model-count {
+      color: var(--cp-text-muted);
+      font-size: 0.8125rem;
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 70vh;
+    }
+
+    table {
+      width: 100%;
+      min-width: 1360px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.8125rem;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--cp-border);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      background: var(--cp-bg-elevated);
+      color: var(--cp-text-muted);
+      font-size: 0.6875rem;
+      letter-spacing: 0.055em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .sortable-heading {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .sort-controls {
+      display: inline-flex;
+      gap: 2px;
+    }
+
+    .sort-button {
+      display: inline-grid;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      place-items: center;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.375rem;
+      background: var(--cp-surface);
+      color: var(--cp-text-muted);
+      cursor: pointer;
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+
+    .sort-button:hover {
+      border-color: var(--cp-border-strong);
+      color: var(--cp-text);
+    }
+
+    .sort-button[aria-pressed="true"] {
+      border-color: var(--cp-accent);
+      background: var(--cp-accent);
+      color: var(--cp-accent-fg);
+    }
+
+    .sort-button:focus-visible {
+      outline: 3px solid var(--cp-accent-soft);
+      outline-offset: 1px;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    tbody tr:hover td {
+      background: var(--cp-accent-soft);
+    }
+
+    .provider-cell {
+      color: var(--cp-text-muted);
+      font-weight: 600;
+    }
+
+    .model-cell {
+      min-width: 210px;
+      font-weight: 700;
+    }
+
+    .pricing-cell {
+      min-width: 172px;
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .share-heading {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .share-clear {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--cp-link);
+      cursor: pointer;
+      font-size: 0.6875rem;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .share-clear:hover {
+      color: var(--cp-accent);
+    }
+
+    .share-cell {
+      min-width: 104px;
+    }
+
+    .share-input-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .share-input {
+      width: 64px;
+      padding: 7px 8px;
+      border: 1px solid var(--cp-border);
+      border-radius: 0.625rem;
+      outline: none;
+      background: var(--cp-bg-elevated);
+      color: var(--cp-text);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .share-input:focus {
+      border-color: var(--cp-accent);
+      box-shadow: 0 0 0 3px var(--cp-accent-soft);
+    }
+
+    .share-symbol {
+      color: var(--cp-text-muted);
+      font-weight: 700;
+    }
+
+    .pricing-cell .formula {
+      display: block;
+      color: var(--cp-text-muted);
+      font-size: 0.72rem;
+      line-height: 1.5;
+    }
+
+    .pricing-cell .result {
+      display: block;
+      color: var(--cp-text);
+      font-weight: 700;
+    }
+
+    .not-applicable {
+      color: var(--cp-text-soft);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .total-cell {
+      min-width: 120px;
+      color: var(--cp-accent);
+      font-family: Consolas, "Courier New", Courier, monospace;
+      font-size: 0.875rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      padding: 40px;
+      color: var(--cp-text-muted);
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .page-shell {
+        padding: 28px 16px 40px;
+      }
+
+      .hero {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .input-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .input-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-heading,
+      .table-meta {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .reset-button {
+        width: 100%;
+      }
+
+      .models-header,
+      .tokens-panel {
+        padding: 20px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Github Copilot</p>
+        <h1>Model Pricing Calculator</h1>
+        <p class="hero-copy">
+          Instantly compare the cost of the same token volume across all models available
+          in GitHub Copilot.
+        </p>
+        <p class="disclaimer">
+          This is an unofficial tool provided for informational purposes only and does not
+          constitute a contractual commitment. Always refer to the official GitHub documentation
+          for current pricing.
+        </p>
+      </div>
+      <a
+        class="source-link"
+        href="https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing"
+        target="_blank"
+        rel="noreferrer"
+      >View official pricing ↗</a>
+    </header>
+
+    <section class="panel tokens-panel" aria-labelledby="tokens-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="tokens-title">Tokens (in million)</h2>
+          <p class="section-description">
+            Enter token volumes in millions. Results are recalculated with every change.
+          </p>
+        </div>
+        <button class="reset-button" id="reset-button" type="button">Reset values</button>
+      </div>
+      <div class="input-grid">
+        <div class="field">
+          <label for="input-tokens">Input token</label>
+          <input id="input-tokens" data-volume="input" type="text" value="0" inputmode="decimal" autocomplete="off">
+          <span class="field-hint">Uncached input</span>
+        </div>
+        <div class="field">
+          <label for="output-tokens">Output token</label>
+          <input id="output-tokens" data-volume="output" type="text" value="0" inputmode="decimal" autocomplete="off">
+          <span class="field-hint">Generated output</span>
+        </div>
+        <div class="field">
+          <label for="cached-input-tokens">Cached input</label>
+          <input id="cached-input-tokens" data-volume="cachedInput" type="text" value="0" inputmode="decimal" autocomplete="off">
+          <span class="field-hint">Cache read</span>
+        </div>
+        <div class="field">
+          <label for="cached-output-tokens">Cached output</label>
+          <input id="cached-output-tokens" data-volume="cacheWrite" type="text" value="0" inputmode="decimal" autocomplete="off">
+          <span class="field-hint">Applied to cache write pricing</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="models-title">
+      <div class="models-header">
+        <div>
+          <h2 id="models-title">Models</h2>
+          <p class="section-description">
+            Public prices in USD per million tokens. 1 AI Credit = $0.01.
+          </p>
+        </div>
+        <div class="table-meta">
+          <input
+            class="search"
+            id="model-search"
+            type="search"
+            placeholder="Filter by provider or model…"
+            aria-label="Filter models"
+          >
+          <span class="model-count" id="model-count" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Provider</th>
+              <th scope="col">Model</th>
+              <th scope="col">Tier</th>
+              <th scope="col">Threshold (input tokens)</th>
+              <th scope="col">
+                <span class="share-heading">
+                  Share %
+                  <button class="share-clear" id="clear-shares" type="button">clear</button>
+                </span>
+              </th>
+              <th scope="col">Input</th>
+              <th scope="col">Cached input</th>
+              <th scope="col">Cache write</th>
+              <th scope="col">Output</th>
+              <th scope="col">
+                <span class="sortable-heading">
+                  Total $
+                  <span class="sort-controls">
+                    <button class="sort-button" type="button" data-sort-key="total" data-sort-direction="asc" aria-label="Sort Total $ ascending" aria-pressed="false" title="Sort ascending">↑</button>
+                    <button class="sort-button" type="button" data-sort-key="total" data-sort-direction="desc" aria-label="Sort Total $ descending" aria-pressed="false" title="Sort descending">↓</button>
+                  </span>
+                </span>
+              </th>
+              <th scope="col">
+                <span class="sortable-heading">
+                  Total AI Credit
+                  <span class="sort-controls">
+                    <button class="sort-button" type="button" data-sort-key="credits" data-sort-direction="asc" aria-label="Sort Total AI Credit ascending" aria-pressed="false" title="Sort ascending">↑</button>
+                    <button class="sort-button" type="button" data-sort-key="credits" data-sort-direction="desc" aria-label="Sort Total AI Credit descending" aria-pressed="false" title="Sort descending">↓</button>
+                  </span>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="models-body"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" hidden>Aucun modèle ne correspond à ce filtre.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const models = [
+      { provider: "OpenAI", model: "GPT-5 mini", status: "GA", category: "Lightweight", tier: "Default", threshold: "Not applicable", input: 0.25, cachedInput: 0.025, cacheWrite: null, output: 2 },
+      { provider: "OpenAI", model: "GPT-5.3-Codex", status: "GA", category: "Powerful", tier: "Default", threshold: "Not applicable", input: 1.75, cachedInput: 0.175, cacheWrite: null, output: 14 },
+      { provider: "OpenAI", model: "GPT-5.4", status: "GA", category: "Versatile", tier: "Default", threshold: "≤ 272K", input: 2.5, cachedInput: 0.25, cacheWrite: null, output: 15 },
+      { provider: "OpenAI", model: "GPT-5.4", status: "GA", category: "Versatile", tier: "Long context", threshold: "> 272K", input: 5, cachedInput: 0.5, cacheWrite: null, output: 22.5 },
+      { provider: "OpenAI", model: "GPT-5.4 mini", status: "GA", category: "Lightweight", tier: "Default", threshold: "Not applicable", input: 0.75, cachedInput: 0.075, cacheWrite: null, output: 4.5 },
+      { provider: "OpenAI", model: "GPT-5.4 nano", status: "GA", category: "Lightweight", tier: "Default", threshold: "Not applicable", input: 0.2, cachedInput: 0.02, cacheWrite: null, output: 1.25 },
+      { provider: "OpenAI", model: "GPT-5.5", status: "GA", category: "Powerful", tier: "Default", threshold: "≤ 272K", input: 5, cachedInput: 0.5, cacheWrite: null, output: 30 },
+      { provider: "OpenAI", model: "GPT-5.5", status: "GA", category: "Powerful", tier: "Long context", threshold: "> 272K", input: 10, cachedInput: 1, cacheWrite: null, output: 45 },
+      { provider: "OpenAI", model: "GPT-5.6 Luna", status: "GA", category: "Lightweight", tier: "Default", threshold: "≤ 200K", input: 0.2, cachedInput: 0.02, cacheWrite: 0.25, output: 1.2 },
+      { provider: "OpenAI", model: "GPT-5.6 Luna", status: "GA", category: "Lightweight", tier: "Long context", threshold: "> 200K", input: 0.4, cachedInput: 0.04, cacheWrite: 0.5, output: 1.8 },
+      { provider: "OpenAI", model: "GPT-5.6 Sol", status: "GA", category: "Powerful", tier: "Default", threshold: "≤ 272K", input: 4, cachedInput: 0.4, cacheWrite: 5, output: 20 },
+      { provider: "OpenAI", model: "GPT-5.6 Sol", status: "GA", category: "Powerful", tier: "Long context", threshold: "> 272K", input: 8, cachedInput: 0.8, cacheWrite: 10, output: 30 },
+      { provider: "OpenAI", model: "GPT-5.6 Terra", status: "GA", category: "Versatile", tier: "Default", threshold: "≤ 272K", input: 2, cachedInput: 0.2, cacheWrite: 2.5, output: 12 },
+      { provider: "OpenAI", model: "GPT-5.6 Terra", status: "GA", category: "Versatile", tier: "Long context", threshold: "> 272K", input: 4, cachedInput: 0.4, cacheWrite: 5, output: 18 },
+      { provider: "OpenAI", model: "GPT-6 Astra", status: "GA", category: "Powerful", tier: "Default", threshold: "≤ 272K", input: 10, cachedInput: 1, cacheWrite: 12.5, output: 50 },
+      { provider: "OpenAI", model: "GPT-6 Astra", status: "GA", category: "Powerful", tier: "Long context", threshold: "> 272K", input: 20, cachedInput: 2, cacheWrite: 25, output: 75 },
+      { provider: "OpenAI", model: "GPT-6 Luna", status: "GA", category: "Lightweight", tier: "Default", threshold: "≤ 272K", input: 0.1, cachedInput: 0.01, cacheWrite: 0.125, output: 0.5 },
+      { provider: "OpenAI", model: "GPT-6 Luna", status: "GA", category: "Lightweight", tier: "Long context", threshold: "> 272K", input: 0.2, cachedInput: 0.02, cacheWrite: 0.25, output: 0.75 },
+      { provider: "OpenAI", model: "GPT-6 Sol", status: "GA", category: "Powerful", tier: "Default", threshold: "≤ 272K", input: 2, cachedInput: 0.2, cacheWrite: 2.5, output: 10 },
+      { provider: "OpenAI", model: "GPT-6 Sol", status: "GA", category: "Powerful", tier: "Long context", threshold: "> 272K", input: 4, cachedInput: 0.4, cacheWrite: 5, output: 15 },
+      { provider: "OpenAI", model: "GPT-6.1 Sol", status: "GA", category: "Powerful", tier: "Default", threshold: "≤ 272K", input: 2, cachedInput: 0.1, cacheWrite: 2.5, output: 10 },
+      { provider: "OpenAI", model: "GPT-6.1 Sol", status: "GA", category: "Powerful", tier: "Long context", threshold: "> 272K", input: 4, cachedInput: 0.2, cacheWrite: 5, output: 15 },
+      { provider: "Anthropic", model: "Claude Haiku 4.5", status: "GA", category: "Versatile", tier: "—", threshold: "—", input: 1, cachedInput: 0.1, cacheWrite: 1.25, output: 5 },
+      { provider: "Anthropic", model: "Claude Sonnet 4", status: "GA", category: "Versatile", tier: "—", threshold: "—", input: 3, cachedInput: 0.3, cacheWrite: 3.75, output: 15 },
+      { provider: "Anthropic", model: "Claude Sonnet 4.6", status: "GA", category: "Versatile", tier: "—", threshold: "—", input: 3, cachedInput: 0.3, cacheWrite: 3.75, output: 15 },
+      { provider: "Anthropic", model: "Claude Opus 4.7", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 5, cachedInput: 0.5, cacheWrite: 6.25, output: 25 },
+      { provider: "Anthropic", model: "Claude Opus 4.8", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 5, cachedInput: 0.5, cacheWrite: 6.25, output: 25 },
+      { provider: "Anthropic", model: "Claude Opus 5", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 5, cachedInput: 0.5, cacheWrite: 6.25, output: 25 },
+      { provider: "Anthropic", model: "Claude Opus 5.5", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 4, cachedInput: 0.2, cacheWrite: 5, output: 20 },
+      { provider: "Anthropic", model: "Claude Sonnet 5", status: "GA", category: "Versatile", tier: "—", threshold: "—", input: 2, cachedInput: 0.2, cacheWrite: 2.5, output: 10 },
+      { provider: "Anthropic", model: "Claude Sonnet 5.5", status: "GA", category: "Versatile", tier: "—", threshold: "—", input: 2, cachedInput: 0.2, cacheWrite: 2.5, output: 10 },
+      { provider: "Anthropic", model: "Claude Opus 4.8 (fast mode) (preview)", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 10, cachedInput: 1, cacheWrite: 12.5, output: 50 },
+      { provider: "Anthropic", model: "Claude Fable 5", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 10, cachedInput: 1, cacheWrite: 12.5, output: 50 },
+      { provider: "Anthropic", model: "Claude Fable 5.1", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 10, cachedInput: 0.25, cacheWrite: 12.5, output: 50 },
+      { provider: "Google", model: "Gemini 3.5 Flash", status: "GA", category: "Lightweight", tier: "Default", threshold: "Not applicable", input: 1.5, cachedInput: 0.15, cacheWrite: null, output: 9 },
+      { provider: "Google", model: "Gemini 3.6 Flash", status: "GA", category: "Versatile", tier: "Default", threshold: "Not applicable", input: 0.75, cachedInput: 0.075, cacheWrite: null, output: 3.75 },
+      { provider: "Google", model: "Gemini 3.7 Flash", status: "GA", category: "Versatile", tier: "Default", threshold: "Not applicable", input: 0.75, cachedInput: 0.075, cacheWrite: null, output: 3.75 },
+      { provider: "Google", model: "Gemini 3.8 Flash", status: "GA", category: "Versatile", tier: "Default", threshold: "Not applicable", input: 0.75, cachedInput: 0.075, cacheWrite: null, output: 3.75 },
+      { provider: "Microsoft", model: "MAI-Code-1.1-Flash", status: "GA", category: "Lightweight", tier: "—", threshold: "—", input: 0.2, cachedInput: 0.02, cacheWrite: null, output: 1.2 },
+      { provider: "xAI", model: "Grok 4.5", status: "GA", category: "Versatile", tier: "Default", threshold: "≤ 200K", input: 2, cachedInput: 0.5, cacheWrite: null, output: 6 },
+      { provider: "xAI", model: "Grok 4.5", status: "GA", category: "Versatile", tier: "Long context", threshold: "> 200K", input: 4, cachedInput: 1, cacheWrite: null, output: 12 },
+      { provider: "xAI", model: "Grok 4.6", status: "GA", category: "Versatile", tier: "Default", threshold: "≤ 200K", input: 2, cachedInput: 0.5, cacheWrite: null, output: 6 },
+      { provider: "xAI", model: "Grok 4.6", status: "GA", category: "Versatile", tier: "Long context", threshold: "> 200K", input: 4, cachedInput: 1, cacheWrite: null, output: 12 },
+      { provider: "xAI", model: "Grok 4.7", status: "GA", category: "Versatile", tier: "Default", threshold: "≤ 200K", input: 2, cachedInput: 0.5, cacheWrite: null, output: 6 },
+      { provider: "xAI", model: "Grok 4.7", status: "GA", category: "Versatile", tier: "Long context", threshold: "> 200K", input: 4, cachedInput: 1, cacheWrite: null, output: 12 },
+      { provider: "Moonshot AI", model: "Kimi K2.7 Code", status: "GA", category: "Versatile", tier: "—", threshold: "—", input: 0.95, cachedInput: 0.19, cacheWrite: null, output: 4 },
+      { provider: "Moonshot AI", model: "Kimi K3", status: "GA", category: "Powerful", tier: "—", threshold: "—", input: 3, cachedInput: 0.3, cacheWrite: null, output: 15 }
+    ];
+
+    const volumeInputs = [...document.querySelectorAll("[data-volume]")];
+    const tableBody = document.getElementById("models-body");
+    const modelSearch = document.getElementById("model-search");
+    const modelCount = document.getElementById("model-count");
+    const emptyState = document.getElementById("empty-state");
+    const sortButtons = [...document.querySelectorAll("[data-sort-key]")];
+    const modelShares = models.map(() => 100);
+    let activeSort = { key: null, direction: null };
+
+    const priceFormatter = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 3
+    });
+
+    const resultFormatter = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6
+    });
+
+    const creditFormatter = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    });
+
+    function parseVolume(value) {
+      return Number.parseFloat(value.replace(/\s/g, "").replace(",", "."));
+    }
+
+    function formatVolumeInput(input) {
+      const original = input.value;
+      const cursor = input.selectionStart ?? original.length;
+      const logicalPosition = original.slice(0, cursor).replace(/\s/g, "").length;
+      const normalized = original
+        .replace(/\s/g, "")
+        .replace(",", ".")
+        .replace(/[^\d.]/g, "");
+      const decimalIndex = normalized.indexOf(".");
+      const integerPart = (decimalIndex === -1 ? normalized : normalized.slice(0, decimalIndex))
+        .replace(/\D/g, "");
+      const decimalPart = decimalIndex === -1
+        ? ""
+        : normalized.slice(decimalIndex + 1).replace(/\D/g, "");
+      const groupedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      const formatted = decimalIndex === -1
+        ? groupedInteger
+        : `${groupedInteger}.${decimalPart}`;
+
+      input.value = formatted;
+
+      let nextCursor = formatted.length;
+      let logicalCount = 0;
+      for (let index = 0; index < formatted.length; index += 1) {
+        if (formatted[index] !== " ") {
+          logicalCount += 1;
+        }
+        if (logicalCount >= logicalPosition) {
+          nextCursor = index + 1;
+          break;
+        }
+      }
+      input.setSelectionRange(nextCursor, nextCursor);
+    }
+
+    function getVolumes() {
+      return Object.fromEntries(
+        volumeInputs.map((input) => {
+          const value = parseVolume(input.value);
+          return [input.dataset.volume, Number.isFinite(value) && value >= 0 ? value : 0];
+        })
+      );
+    }
+
+    function priceContent(price, volume) {
+      if (price === null) {
+        return "Not applicable";
+      }
+
+      const result = price * volume;
+      return `
+        <span class="formula">$${priceFormatter.format(price)} × ${resultFormatter.format(volume)}</span>
+        <span class="result">= $${resultFormatter.format(result)}</span>
+      `;
+    }
+
+    function priceCell(price, volume, costType) {
+      const notApplicableClass = price === null ? " not-applicable" : "";
+      return `<td class="pricing-cell${notApplicableClass}" data-cost="${costType}">${priceContent(price, volume)}</td>`;
+    }
+
+    function calculateTotal(model, volumes, share) {
+      const factor = share / 100;
+      return (
+        model.input * volumes.input +
+        model.cachedInput * volumes.cachedInput +
+        (model.cacheWrite || 0) * volumes.cacheWrite +
+        model.output * volumes.output
+      ) * factor;
+    }
+
+    function updateRenderedRow(row, modelIndex) {
+      const model = models[modelIndex];
+      const volumes = getVolumes();
+      const factor = modelShares[modelIndex] / 100;
+      const volumeByCost = {
+        input: volumes.input * factor,
+        cachedInput: volumes.cachedInput * factor,
+        cacheWrite: volumes.cacheWrite * factor,
+        output: volumes.output * factor
+      };
+
+      Object.entries(volumeByCost).forEach(([costType, volume]) => {
+        const cell = row.querySelector(`[data-cost="${costType}"]`);
+        const price = model[costType];
+        cell.classList.toggle("not-applicable", price === null);
+        cell.innerHTML = priceContent(price, volume);
+      });
+
+      const total = calculateTotal(model, volumes, modelShares[modelIndex]);
+      row.querySelector("[data-total]").textContent = `$${resultFormatter.format(total)}`;
+      row.querySelector("[data-credits]").textContent = creditFormatter.format(total / 0.01);
+    }
+
+    function renderModels() {
+      const volumes = getVolumes();
+      const query = modelSearch.value.trim().toLocaleLowerCase();
+      const visibleModels = models
+        .map((model, modelIndex) => ({ ...model, modelIndex }))
+        .filter((model) =>
+          [model.provider, model.model, model.tier]
+            .join(" ")
+            .toLocaleLowerCase()
+            .includes(query)
+        )
+        .map((model) => {
+          const total = calculateTotal(model, volumes, modelShares[model.modelIndex]);
+          return { ...model, total };
+        });
+
+      if (activeSort.key) {
+        const multiplier = activeSort.direction === "asc" ? 1 : -1;
+        visibleModels.sort((first, second) => {
+          const firstValue = activeSort.key === "credits" ? first.total / 0.01 : first.total;
+          const secondValue = activeSort.key === "credits" ? second.total / 0.01 : second.total;
+          return (firstValue - secondValue) * multiplier;
+        });
+      }
+
+      tableBody.innerHTML = visibleModels.map((model) => {
+        return `
+          <tr data-model-index="${model.modelIndex}">
+            <td class="provider-cell">${model.provider}</td>
+            <td class="model-cell">${model.model}</td>
+            <td>${model.tier}</td>
+            <td>${model.threshold}</td>
+            <td class="share-cell">
+              <span class="share-input-wrap">
+                <input
+                  class="share-input"
+                  data-share-index="${model.modelIndex}"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="any"
+                  value="${modelShares[model.modelIndex]}"
+                  aria-label="Share for ${model.model}"
+                >
+                <span class="share-symbol">%</span>
+              </span>
+            </td>
+            ${priceCell(model.input, volumes.input * modelShares[model.modelIndex] / 100, "input")}
+            ${priceCell(model.cachedInput, volumes.cachedInput * modelShares[model.modelIndex] / 100, "cachedInput")}
+            ${priceCell(model.cacheWrite, volumes.cacheWrite * modelShares[model.modelIndex] / 100, "cacheWrite")}
+            ${priceCell(model.output, volumes.output * modelShares[model.modelIndex] / 100, "output")}
+            <td class="total-cell" data-total>$${resultFormatter.format(model.total)}</td>
+            <td class="total-cell" data-credits>${creditFormatter.format(model.total / 0.01)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      sortButtons.forEach((button) => {
+        const isActive =
+          button.dataset.sortKey === activeSort.key &&
+          button.dataset.sortDirection === activeSort.direction;
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+
+      modelCount.textContent = `${visibleModels.length} model${visibleModels.length === 1 ? "" : "s"}`;
+      emptyState.hidden = visibleModels.length > 0;
+    }
+
+    volumeInputs.forEach((input) => {
+      input.addEventListener("input", () => {
+        formatVolumeInput(input);
+        renderModels();
+      });
+      input.addEventListener("blur", () => {
+        if (input.value === "" || !Number.isFinite(parseVolume(input.value))) {
+          input.value = "0";
+          renderModels();
+        }
+      });
+    });
+
+    modelSearch.addEventListener("input", renderModels);
+
+    tableBody.addEventListener("input", (event) => {
+      const input = event.target.closest("[data-share-index]");
+      if (!input) {
+        return;
+      }
+
+      const modelIndex = Number(input.dataset.shareIndex);
+      const parsedShare = Number.parseFloat(input.value);
+      modelShares[modelIndex] = Number.isFinite(parsedShare)
+        ? Math.min(100, Math.max(0, parsedShare))
+        : 0;
+      updateRenderedRow(input.closest("tr"), modelIndex);
+    });
+
+    tableBody.addEventListener("change", (event) => {
+      if (event.target.closest("[data-share-index]")) {
+        renderModels();
+      }
+    });
+
+    document.getElementById("clear-shares").addEventListener("click", () => {
+      modelShares.fill(0);
+      renderModels();
+    });
+
+    sortButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeSort = {
+          key: button.dataset.sortKey,
+          direction: button.dataset.sortDirection
+        };
+        renderModels();
+      });
+    });
+
+    document.getElementById("reset-button").addEventListener("click", () => {
+      volumeInputs.forEach((input) => {
+        input.value = "0";
+      });
+      modelShares.fill(100);
+      modelSearch.value = "";
+      renderModels();
+      volumeInputs[0].focus();
+    });
+
+    renderModels();
+  </script>
+</body>
+</html>
