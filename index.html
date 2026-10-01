@@ -360,6 +360,14 @@
       font-weight: 700;
     }
 
+    .model-subtitle {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.75em;
+      font-weight: 400;
+      color: var(--cp-text-muted);
+    }
+
     .pricing-cell {
       min-width: 172px;
       font-family: Consolas, "Courier New", Courier, monospace;
@@ -581,8 +589,6 @@
             <tr>
               <th scope="col">Provider</th>
               <th scope="col">Model</th>
-              <th scope="col">Tier</th>
-              <th scope="col">Threshold (input tokens)</th>
               <th scope="col">
                 <span class="share-heading">
                   Share %
@@ -755,6 +761,14 @@
       `;
     }
 
+    function modelSubtitle(model) {
+      const isEmpty = (value) => !value || value === "—" || value === "-" || value === "Not applicable";
+      const parts = [];
+      if (!isEmpty(model.tier)) parts.push(model.tier);
+      if (!isEmpty(model.threshold)) parts.push(model.threshold);
+      return parts.length ? `<span class="model-subtitle">${parts.join(" ")}</span>` : "";
+    }
+
     function priceCell(price, volume, costType) {
       const notApplicableClass = price === null ? " not-applicable" : "";
       return `<td class="pricing-cell${notApplicableClass}" data-cost="${costType}">${priceContent(price, volume)}</td>`;
@@ -822,9 +836,7 @@
         return `
           <tr data-model-index="${model.modelIndex}">
             <td class="provider-cell">${model.provider}</td>
-            <td class="model-cell">${model.model}</td>
-            <td>${model.tier}</td>
-            <td>${model.threshold}</td>
+            <td class="model-cell">${model.model}${modelSubtitle(model)}</td>
             <td class="share-cell">
               <span class="share-input-wrap">
                 <input
