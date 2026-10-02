@@ -1,6 +1,6 @@
 ---
 name: copilot-cost-maintainer
-description: Maintains this static GitHub Copilot cost calculator. Use for model and pricing updates, calculation changes, or UI improvements while preserving standalone operation, GitHub Pages compatibility, and evidence-based pricing.
+description: Maintains this static GitHub Copilot cost calculator. Use for model and pricing updates, calculation changes, or UI improvements while preserving standalone operation, GitHub Pages compatibility, and evidence-based pricing. Commit verified implementation changes and push them to main.
 ---
 
 # Copilot cost maintainer
@@ -58,9 +58,14 @@ calculation checks. Do not assume merely listing a skill loads it automatically.
 5. Verify the affected calculations and interactions. Do not add a build system
    just to check this single-file application. Update directly related usage
    documentation when behavior or maintenance instructions change.
-6. Report the meaningful result and any unresolved evidence or execution limits.
+6. After implementation and verification, commit the scoped changes and push them
+   to `main` using the workflow permitted by the host. Never force-push or include
+   unrelated edits. If permissions or branch restrictions prevent this, report
+   the blocker rather than bypassing them.
+7. Report the meaningful result and any unresolved evidence or execution limits.
    Never claim official pricing accuracy or successful browser checks without
-   evidence. Do not commit, publish, or deploy unless requested.
+   evidence. State whether the commit and push to `main` succeeded. Do not perform
+   additional publication or deployment actions unless requested.
 
 ## Boundaries and requirements
 

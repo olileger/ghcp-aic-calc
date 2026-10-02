@@ -101,6 +101,11 @@
       margin-bottom: 24px;
     }
 
+    .hero > div {
+      min-width: 0;
+      max-width: 100%;
+    }
+
     .eyebrow {
       margin: 0 0 8px;
       color: var(--cp-accent);
@@ -127,11 +132,12 @@
     }
 
     .hero-copy {
-      max-width: 620px;
       margin: 12px 0 0;
+      overflow-x: auto;
       color: var(--cp-text-muted);
       font-size: 1rem;
       line-height: 1.6;
+      white-space: nowrap;
     }
 
     .disclaimer {
@@ -226,11 +232,6 @@
     .field input:focus {
       border-color: var(--cp-accent);
       box-shadow: 0 0 0 3px var(--cp-accent-soft);
-    }
-
-    .field-hint {
-      color: var(--cp-text-soft);
-      font-size: 0.75rem;
     }
 
     .models-header {
@@ -515,8 +516,7 @@
         <p class="eyebrow">Github Copilot</p>
         <h1>Model Pricing Calculator</h1>
         <p class="hero-copy">
-          Instantly compare the cost of the same token volume across all models available
-          in GitHub Copilot.
+          Instantly compare the cost of the same token volume across all models available in GitHub Copilot.
         </p>
         <p class="disclaimer">
           This is an unofficial tool provided for informational purposes only and does not
@@ -546,22 +546,18 @@
         <div class="field">
           <label for="input-tokens">Input token</label>
           <input id="input-tokens" data-volume="input" type="text" value="0" inputmode="decimal" autocomplete="off">
-          <span class="field-hint">Uncached input</span>
         </div>
         <div class="field">
           <label for="output-tokens">Output token</label>
           <input id="output-tokens" data-volume="output" type="text" value="0" inputmode="decimal" autocomplete="off">
-          <span class="field-hint">Generated output</span>
         </div>
         <div class="field">
           <label for="cached-input-tokens">Cached input</label>
           <input id="cached-input-tokens" data-volume="cachedInput" type="text" value="0" inputmode="decimal" autocomplete="off">
-          <span class="field-hint">Cache read</span>
         </div>
         <div class="field">
           <label for="cached-output-tokens">Cached output</label>
           <input id="cached-output-tokens" data-volume="cacheWrite" type="text" value="0" inputmode="decimal" autocomplete="off">
-          <span class="field-hint">Applied to cache write pricing</span>
         </div>
       </div>
     </section>
@@ -764,7 +760,7 @@
     function modelSubtitle(model) {
       const isEmpty = (value) => !value || value === "—" || value === "-" || value === "Not applicable";
       const parts = [];
-      if (!isEmpty(model.tier)) parts.push(model.tier);
+      if (!isEmpty(model.tier)) parts.push(`<strong>Tier:</strong> ${model.tier}`);
       if (!isEmpty(model.threshold)) parts.push(model.threshold);
       return parts.length ? `<span class="model-subtitle">${parts.join(" ")}</span>` : "";
     }
