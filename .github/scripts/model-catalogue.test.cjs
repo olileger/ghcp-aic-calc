@@ -81,17 +81,35 @@ const workflowSource = fs.readFileSync(
   path.join(__dirname, "..", "workflows", "update-copilot-models.md"), "utf8")
   .replace(/\r\n/g, "\n");
 
-test("source retrieval uses an allowed standalone curl command without retries", () => {
-  assert.match(workflowSource, /bash: \["node:\*", "curl:\*"\]/);
-  assert.match(workflowSource, /network:\n  allowed:\n    - defaults\n    - docs\.github\.com\n/);
-  const command = workflowSource.match(/```bash\n([^\n]+)\n\s*```/)[1];
-  assert.equal(command.trim(),
-    "curl --fail --silent --show-error --max-time 60 --output /tmp/gh-aw/copilot-pricing.txt "
-    + "'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'");
+test("source retrieval runs deterministically before the agent without retries", () => {
+  assert.match(workflowSource, /tools:\n  bash: \["node:\*"\]\nsteps:/);
+  assert.match(workflowSource, /network:\n  allowed:\n    - defaults\ntools:/);
+  const command = workflowSource.match(
+    /  - name: Download official Copilot pricing\n    shell: bash\n    run: \|\n([\s\S]*?)\nsafe-outputs:/)[1]
+    .replace(/^      /gm, "") + "\n";
+  assert.equal(command, [
+    "set -euo pipefail",
+    "mkdir -p /tmp/gh-aw",
+    "curl --fail --silent --show-error --max-time 60 \\",
+    "  --output /tmp/gh-aw/copilot-pricing.txt \\",
+    "  'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'",
+    "test -s /tmp/gh-aw/copilot-pricing.txt",
+    "date -u +%FT%TZ > /tmp/gh-aw/copilot-pricing-retrieved-at.txt",
+    ""
+  ].join("\n"));
+  assert.match(workflowSource, /Use that timestamp unchanged/);
+  assert.match(workflowSource, /Do not make network requests or generate a new retrieval timestamp/);
   assert.match(workflowSource, /Do not retry the request/);
   const lock = fs.readFileSync(
-    path.join(__dirname, "..", "workflows", "update-copilot-models.lock.yml"), "utf8");
-  assert.match(lock, /--allow-tool '\\''shell\(curl:\*\)'\\''/);
+    path.join(__dirname, "..", "workflows", "update-copilot-models.lock.yml"), "utf8")
+    .replace(/\r\n/g, "\n");
+  const compiled = lock.match(/- name: Download official Copilot pricing\n\s+run: ("[^\n]*")\n\s+shell: bash/);
+  assert(compiled, "Missing deterministic download step in the compiled workflow.");
+  assert.equal(JSON.parse(compiled[1]), command);
+  assert(lock.indexOf("name: Download official Copilot pricing")
+    < lock.indexOf("name: Execute GitHub Copilot CLI"));
+  assert(!lock.includes("shell(curl:*)"));
+  assert(!lock.includes("--allow-tool web_fetch"));
 });
 
 const script = workflowSource.match(/            script: \|\n([\s\S]*?)\n---/)[1]

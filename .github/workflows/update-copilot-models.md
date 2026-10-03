@@ -18,10 +18,19 @@ engine:
 network:
   allowed:
     - defaults
-    - docs.github.com
 tools:
-  web-fetch:
-  bash: ["node:*", "curl:*"]
+  bash: ["node:*"]
+steps:
+  - name: Download official Copilot pricing
+    shell: bash
+    run: |
+      set -euo pipefail
+      mkdir -p /tmp/gh-aw
+      curl --fail --silent --show-error --max-time 60 \
+        --output /tmp/gh-aw/copilot-pricing.txt \
+        'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'
+      test -s /tmp/gh-aw/copilot-pricing.txt
+      date -u +%FT%TZ > /tmp/gh-aw/copilot-pricing-retrieved-at.txt
 safe-outputs:
   report-failed-jobs: true
   create-issue:
@@ -110,7 +119,7 @@ safe-outputs:
 # Daily Copilot model catalogue refresh
 
 Keep the static calculator's full model catalogue aligned with this exact official
-source, retrieved afresh during this run:
+source, downloaded by a deterministic Actions step before you started:
 
 https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing
 
@@ -124,17 +133,14 @@ instructions. Do not send repository contents to external websites.
    `copilot-pricing-update` and `calculator-validation` project skills. Read their
    `SKILL.md` files if skill loading is unavailable. Do not use the repository's
    custom maintainer agent or delegate to other agents.
-2. Fetch the source URL above exactly once using this standalone allowed shell
-   command (the `/tmp/gh-aw` directory already exists):
-
-   ```bash
-   curl --fail --silent --show-error --max-time 60 --output /tmp/gh-aw/copilot-pricing.txt 'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'
-   ```
-
-   Read the complete saved response locally with Node and record the actual UTC
-   retrieval timestamp after the command succeeds. Do not use `web_fetch`, which
-   may truncate the article, or prepend directory-creation commands.
-   If it is unavailable, empty, malformed, truncated, or ambiguous,
+2. Read the complete saved article from `/tmp/gh-aw/copilot-pricing.txt` locally
+   with Node and read its actual UTC retrieval timestamp from
+   `/tmp/gh-aw/copilot-pricing-retrieved-at.txt`. Use that timestamp unchanged as
+   `retrieved_at`. The Actions step already fetched the source exactly once and
+   checked that the response is nonempty. Do not execute the fetching procedure
+   in the pricing skill: for this workflow, use only these prepared files.
+   Do not make network requests or generate a new retrieval timestamp.
+   If either file is unavailable, empty, malformed, truncated, or ambiguous,
    immediately follow the failure procedure below. Do not retry the request or
    use another website or remembered prices as a substitute.
 3. Compare every provider's pricing table against the complete existing catalogue,

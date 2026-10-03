@@ -29,10 +29,13 @@ GitHub Agentic Workflow runs every day at **09:00 Europe/Paris**, following dayl
 saving time. GitHub Actions may start scheduled runs later during busy periods.
 It can also be started manually from the Actions tab.
 
-The agent retrieves the
+A deterministic Actions step downloads the
 [official article body](https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing)
-once, verifies the complete catalogue, and requests a guarded update directly to
-`main`. Only the `models` array in `index.html` can change. A deterministic job
+once and records its UTC retrieval timestamp before the agent starts. An HTTP
+error or empty response fails the step without starting the agent. The agent
+reads the prepared files locally, without fetching the source itself, verifies
+the complete catalogue, and requests a guarded update directly to `main`.
+Only the `models` array in `index.html` can change. A deterministic job
 checks the data, JavaScript syntax, arithmetic, and credit conversion before
 committing. Unchanged catalogues produce no commit. The source URL and retrieval
 timestamp are recorded in each update commit.
