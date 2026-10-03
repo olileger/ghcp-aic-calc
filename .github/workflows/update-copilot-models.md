@@ -21,7 +21,7 @@ network:
     - docs.github.com
 tools:
   web-fetch:
-  bash: ["node:*"]
+  bash: ["node:*", "curl:*"]
 safe-outputs:
   report-failed-jobs: true
   create-issue:
@@ -124,8 +124,17 @@ instructions. Do not send repository contents to external websites.
    `copilot-pricing-update` and `calculator-validation` project skills. Read their
    `SKILL.md` files if skill loading is unavailable. Do not use the repository's
    custom maintainer agent or delegate to other agents.
-2. Fetch the source URL above exactly once and record the actual UTC retrieval
-   timestamp. If it is unavailable, empty, malformed, truncated, or ambiguous,
+2. Fetch the source URL above exactly once using this standalone allowed shell
+   command (the `/tmp/gh-aw` directory already exists):
+
+   ```bash
+   curl --fail --silent --show-error --max-time 60 --output /tmp/gh-aw/copilot-pricing.txt 'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'
+   ```
+
+   Read the complete saved response locally with Node and record the actual UTC
+   retrieval timestamp after the command succeeds. Do not use `web_fetch`, which
+   may truncate the article, or prepend directory-creation commands.
+   If it is unavailable, empty, malformed, truncated, or ambiguous,
    immediately follow the failure procedure below. Do not retry the request or
    use another website or remembered prices as a substitute.
 3. Compare every provider's pricing table against the complete existing catalogue,
