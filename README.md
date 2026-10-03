@@ -34,7 +34,11 @@ A deterministic Actions step downloads the
 once and records its UTC retrieval timestamp before the agent starts. An HTTP
 error or empty response fails the step without starting the agent. The agent
 reads the prepared files locally, without fetching the source itself, verifies
-the complete catalogue, and requests a guarded update directly to `main`.
+the complete catalogue, saves it to a fixed JSON file, and requests publication
+with a readiness flag only. The catalogue file and original retrieval timestamp
+are transferred through the run's artifact; the publication job reads them
+directly, without the agent copying JSON into tool arguments or invoking `jq`.
+Missing, empty, or invalid catalogue files block publication.
 Only the `models` array in `index.html` can change. A deterministic job
 checks the data, JavaScript syntax, arithmetic, and credit conversion before
 committing. Unchanged catalogues produce no commit. The source URL and retrieval

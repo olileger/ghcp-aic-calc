@@ -89,12 +89,12 @@ test("source retrieval runs deterministically before the agent without retries",
     .replace(/^      /gm, "") + "\n";
   assert.equal(command, [
     "set -euo pipefail",
-    "mkdir -p /tmp/gh-aw",
+    "mkdir -p /tmp/gh-aw/agent",
     "curl --fail --silent --show-error --max-time 60 \\",
     "  --output /tmp/gh-aw/copilot-pricing.txt \\",
     "  'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'",
     "test -s /tmp/gh-aw/copilot-pricing.txt",
-    "date -u +%FT%TZ > /tmp/gh-aw/copilot-pricing-retrieved-at.txt",
+    "date -u +%FT%TZ > /tmp/gh-aw/agent/copilot-pricing-retrieved-at.txt",
     ""
   ].join("\n"));
   assert.match(workflowSource, /Use that timestamp unchanged/);
@@ -117,14 +117,25 @@ const script = workflowSource.match(/            script: \|\n([\s\S]*?)\n---/)[1
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const publish = new AsyncFunction("require", "process", "github", "context", "core", script);
 
-async function runPublication(rows, { staged = false, failWrite = false, blocked = false } = {}) {
+async function runPublication(rows, {
+  staged = false, failWrite = false, blocked = false, ready = true,
+  missingCatalogue = false, invalidJson = false, missingTimestamp = false,
+  retrievedAt = new Date().toISOString()
+} = {}) {
   const writes = [];
-  const items = [{
-    type: "publish_models", catalogue: JSON.stringify(rows), retrieved_at: new Date().toISOString()
-  }];
+  const items = [{ type: "publish_models", ready }];
   if (blocked) items.push({ type: "create_issue", title: "Blocked update" });
   const requireFixture = (name) => {
-    if (name === "node:fs") return { readFileSync: () => JSON.stringify({ items }) };
+    if (name === "node:fs") return { readFileSync: (file) => {
+      if (file === path.join("fixture", "agent_output.json")) return JSON.stringify({ items });
+      if (file === path.join("fixture", "agent", "catalogue.json")) {
+        assert(!missingCatalogue, "Missing catalogue file.");
+        return invalidJson ? "{invalid" : JSON.stringify(rows);
+      }
+      assert.equal(file, path.join("fixture", "agent", "copilot-pricing-retrieved-at.txt"));
+      assert(!missingTimestamp, "Missing retrieval timestamp file.");
+      return `${retrievedAt}\n`;
+    } };
     if (name === "./.github/scripts/model-catalogue.cjs") return require("./model-catalogue.cjs");
     return require(name);
   };
@@ -143,7 +154,7 @@ async function runPublication(rows, { staged = false, failWrite = false, blocked
   let error;
   try {
     await publish(requireFixture, { env: {
-      GH_AW_AGENT_OUTPUT: "fixture", GITHUB_WORKFLOW_SHA: "workflow-sha"
+      GH_AW_AGENT_OUTPUT: path.join("fixture", "agent_output.json"), GITHUB_WORKFLOW_SHA: "workflow-sha"
     } }, github, { repo: { owner: "fixture", repo: "calculator" } }, { info: () => {} });
   } catch (failure) {
     error = failure;
@@ -184,4 +195,33 @@ test("a rejected publication fails explicitly after exactly one write attempt", 
   const { writes, error } = await runPublication(proposed, { failWrite: true });
   assert.equal(writes.length, 1);
   assert.match(error.message, /Publication blocked/);
+});
+
+test("file-based publication fails closed on missing, malformed or unready artifacts", async () => {
+  const proposed = copy();
+  proposed[0].input += 1;
+  for (const options of [
+    { missingCatalogue: true }, { invalidJson: true }, { missingTimestamp: true },
+    { ready: false }, { retrievedAt: "invalid" },
+    { retrievedAt: new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString() },
+    { retrievedAt: new Date(Date.now() + 60 * 60 * 1000).toISOString() }
+  ]) {
+    const { writes, error } = await runPublication(proposed, options);
+    assert(error, `Expected explicit rejection for ${JSON.stringify(options)}.`);
+    assert.equal(writes.length, 0);
+  }
+});
+
+test("publication transfers fixed files rather than catalogue JSON tool arguments", () => {
+  assert.match(workflowSource, /inputs:\n        ready:[\s\S]*?type: boolean/);
+  assert(!workflowSource.includes("JSON.parse(item.catalogue)"));
+  assert(!workflowSource.includes("item.retrieved_at"));
+  const lock = fs.readFileSync(
+    path.join(__dirname, "..", "workflows", "update-copilot-models.lock.yml"), "utf8");
+  assert(lock.includes("/tmp/gh-aw/agent/copilot-pricing-retrieved-at.txt"));
+  assert(lock.includes('path.join(artifactRoot, "agent", "catalogue.json")'));
+  const upload = lock.match(/- name: Upload agent artifacts[\s\S]*?(?=\n  conclusion:)/)[0];
+  assert.match(upload, /name: agent\n/);
+  assert.match(upload, /\n\s+\/tmp\/gh-aw\/agent\/\n/);
+  assert.match(lock, /- name: Download agent output artifact[\s\S]*?name: agent\n\s+path: \$\{\{ runner.temp \}\}\/gh-aw\/safe-jobs\//);
 });

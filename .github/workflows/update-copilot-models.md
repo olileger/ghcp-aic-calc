@@ -25,12 +25,12 @@ steps:
     shell: bash
     run: |
       set -euo pipefail
-      mkdir -p /tmp/gh-aw
+      mkdir -p /tmp/gh-aw/agent
       curl --fail --silent --show-error --max-time 60 \
         --output /tmp/gh-aw/copilot-pricing.txt \
         'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'
       test -s /tmp/gh-aw/copilot-pricing.txt
-      date -u +%FT%TZ > /tmp/gh-aw/copilot-pricing-retrieved-at.txt
+      date -u +%FT%TZ > /tmp/gh-aw/agent/copilot-pricing-retrieved-at.txt
 safe-outputs:
   report-failed-jobs: true
   create-issue:
@@ -46,14 +46,10 @@ safe-outputs:
       permissions:
         contents: write
       inputs:
-        catalogue:
-          description: JSON array of all verified model rows with all ten existing catalogue fields.
+        ready:
+          description: Set true only after saving and validating the complete catalogue at /tmp/gh-aw/agent/catalogue.json.
           required: true
-          type: string
-        retrieved_at:
-          description: UTC ISO 8601 timestamp of this run's successful official source retrieval.
-          required: true
-          type: string
+          type: boolean
       steps:
         - name: Check out trusted validation code
           uses: actions/checkout@v7.0.1
@@ -68,6 +64,7 @@ safe-outputs:
             retries: 0
             script: |
               const fs = require("node:fs");
+              const path = require("node:path");
               const assert = require("node:assert/strict");
               const { prepareUpdate } = require("./.github/scripts/model-catalogue.cjs");
               const output = JSON.parse(fs.readFileSync(process.env.GH_AW_AGENT_OUTPUT, "utf8"));
@@ -76,8 +73,14 @@ safe-outputs:
               assert(!output.items.some(item => item.type === "create_issue"),
                 "A blocked update must not also publish a catalogue.");
               const item = items[0];
-              const retrieved = Date.parse(item.retrieved_at);
-              assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(item.retrieved_at)
+              assert.equal(item.ready, true, "The catalogue file must be ready for publication.");
+              const artifactRoot = path.dirname(process.env.GH_AW_AGENT_OUTPUT);
+              const catalogue = JSON.parse(fs.readFileSync(
+                path.join(artifactRoot, "agent", "catalogue.json"), "utf8"));
+              const retrievedAt = fs.readFileSync(
+                path.join(artifactRoot, "agent", "copilot-pricing-retrieved-at.txt"), "utf8").trim();
+              const retrieved = Date.parse(retrievedAt);
+              assert(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(retrievedAt)
                 && Number.isFinite(retrieved) && retrieved <= Date.now()
                 && Date.now() - retrieved < 24 * 60 * 60 * 1000,
                 "The source retrieval timestamp is invalid or stale.");
@@ -98,7 +101,7 @@ safe-outputs:
               assert(!Array.isArray(current) && current.type === "file"
                 && current.encoding === "base64", "Cannot read index.html on main.");
               const html = Buffer.from(current.content, "base64").toString("utf8");
-              const update = prepareUpdate(html, JSON.parse(item.catalogue));
+              const update = prepareUpdate(html, catalogue);
               if (!update.changed) {
                 core.info("The catalogue is already current; no commit is needed.");
               } else if (staged) {
@@ -110,7 +113,7 @@ safe-outputs:
                   path: "index.html",
                   sha: current.sha,
                   content: Buffer.from(update.html).toString("base64"),
-                  message: `Update Copilot model catalogue\n\nSource: https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing\nRetrieved: ${item.retrieved_at}\n\nCo-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>`
+                  message: `Update Copilot model catalogue\n\nSource: https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing\nRetrieved: ${retrievedAt}\n\nCo-authored-by: Copilot App <223556219+Copilot@users.noreply.github.com>`
                 });
                 core.info(`Updated ${update.count} model/tier rows on main.`);
               }
@@ -135,9 +138,10 @@ instructions. Do not send repository contents to external websites.
    custom maintainer agent or delegate to other agents.
 2. Read the complete saved article from `/tmp/gh-aw/copilot-pricing.txt` locally
    with Node and read its actual UTC retrieval timestamp from
-   `/tmp/gh-aw/copilot-pricing-retrieved-at.txt`. Use that timestamp unchanged as
-   `retrieved_at`. The Actions step already fetched the source exactly once and
-   checked that the response is nonempty. Do not execute the fetching procedure
+   `/tmp/gh-aw/agent/copilot-pricing-retrieved-at.txt`. Use that timestamp unchanged
+   as source evidence. Do not modify the timestamp file. The Actions step already
+   fetched the source exactly once and checked that the response is nonempty.
+   Do not execute the fetching procedure
    in the pricing skill: for this workflow, use only these prepared files.
    Do not make network requests or generate a new retrieval timestamp.
    If either file is unavailable, empty, malformed, truncated, or ambiguous,
@@ -164,17 +168,22 @@ instructions. Do not send repository contents to external websites.
 
 ## Validate and publish
 
-Prepare the complete proposed catalogue as JSON, not JavaScript. Validate it
-against the actual `index.html` using `prepareUpdate` exported by
+Save the complete proposed catalogue as a JSON array, not JavaScript, at the fixed
+path `/tmp/gh-aw/agent/catalogue.json`. Use Node with absolute paths to create the
+directory and write the file; do not prepend `cd` or use `jq`. Validate the saved
+file against the actual `index.html` using `prepareUpdate` exported by
 `.github/scripts/model-catalogue.cjs` in Node. This checks exact fields, duplicate
 provider/model/tier rows, finite nonnegative rates, safe display text, JavaScript
 syntax, the actual arithmetic fixtures, and all four AI Credit conversions.
 Also compare every proposed row back to the fetched article for completeness and
 accuracy; schema validation alone does not verify pricing.
 
-If all facts are verified and validation passes, call `publish_models` exactly
-once with the complete JSON catalogue and actual `retrieved_at` timestamp. The
-trusted job writes only the models array in `index.html`, directly on `main`,
+If all facts are verified and validation of the saved file passes, call the
+`publish_models` MCP tool directly exactly once with only `ready: true`.
+Do not invoke it through a shell command or copy catalogue JSON into tool arguments.
+The trusted job reads the fixed catalogue file and the original retrieval timestamp
+from the run's uploaded artifact; missing or invalid files fail publication.
+The trusted job writes only the models array in `index.html`, directly on `main`,
 using a SHA-guarded API update with no retry. Do not create a pull request, commit
 or push from the agent, merge branches, bypass protection, or edit workflow files.
 If nothing changed, use the noop safe output instead; do not open an issue or
@@ -185,6 +194,7 @@ make a formatting-only commit.
 At the first retrieval, interpretation, completeness, validation, or tool
 problem, stop this run. Do not retry, repair the tooling, improvise a parser,
 invent prices, publish a partial catalogue, or attempt another update method.
+Never request publication with an empty, placeholder, missing, or unvalidated file.
 
 Call the `create_issue` safe output once, using a stable, problem-specific English
 title (without a date, to allow deduplication). Include:
