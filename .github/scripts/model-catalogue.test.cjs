@@ -80,6 +80,20 @@ test("fails closed on changed catalogue structure, syntax, arithmetic or convers
 const workflowSource = fs.readFileSync(
   path.join(__dirname, "..", "workflows", "update-copilot-models.md"), "utf8")
   .replace(/\r\n/g, "\n");
+
+test("source retrieval uses an allowed standalone curl command without retries", () => {
+  assert.match(workflowSource, /bash: \["node:\*", "curl:\*"\]/);
+  assert.match(workflowSource, /network:\n  allowed:\n    - defaults\n    - docs\.github\.com\n/);
+  const command = workflowSource.match(/```bash\n([^\n]+)\n\s*```/)[1];
+  assert.equal(command.trim(),
+    "curl --fail --silent --show-error --max-time 60 --output /tmp/gh-aw/copilot-pricing.txt "
+    + "'https://docs.github.com/api/article/body?pathname=/en/copilot/reference/copilot-billing/models-and-pricing'");
+  assert.match(workflowSource, /Do not retry the request/);
+  const lock = fs.readFileSync(
+    path.join(__dirname, "..", "workflows", "update-copilot-models.lock.yml"), "utf8");
+  assert.match(lock, /--allow-tool '\\''shell\(curl:\*\)'\\''/);
+});
+
 const script = workflowSource.match(/            script: \|\n([\s\S]*?)\n---/)[1]
   .replace(/^              /gm, "");
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
