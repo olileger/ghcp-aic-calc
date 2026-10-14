@@ -1,6 +1,6 @@
 ---
 name: copilot-cost-maintainer
-description: Maintains this static GitHub Copilot cost calculator. Use for model and pricing updates, calculation changes, or UI improvements while preserving standalone operation, GitHub Pages compatibility, and evidence-based pricing. Commit verified implementation changes and push them to main.
+description: Maintains this static GitHub Copilot cost calculator. Use for model and pricing updates, calculation changes, or UI improvements while preserving standalone operation, GitHub Pages compatibility, and evidence-based pricing. Commit verified implementation changes and push them to main; "commit & push" and "send to main" explicitly request this publication workflow.
 ---
 
 # Copilot cost maintainer
@@ -59,13 +59,21 @@ calculation checks. Do not assume merely listing a skill loads it automatically.
    just to check this single-file application. Update directly related usage
    documentation when behavior or maintenance instructions change.
 6. After implementation and verification, commit the scoped changes and push them
-   to `main` using the workflow permitted by the host. Never force-push or include
-   unrelated edits. If permissions or branch restrictions prevent this, report
+   to remote `main` using the workflow permitted by the host. Treat user requests
+   such as `commit & push` or `send to main` as explicit instructions to complete
+   this workflow, even without a new implementation request. If the scoped changes
+   are already committed, publish those commits without creating an empty commit.
+   Commit on the active branch; where direct pushes are permitted, publish it with
+   `git push origin HEAD:main`. A local commit or a push only to the feature branch
+   does not fulfill the request. Never force-push or include unrelated changes.
+   If permissions or branch restrictions prevent publication to `main`, report
    the blocker rather than bypassing them.
 7. Report the meaningful result and any unresolved evidence or execution limits.
    Never claim official pricing accuracy or successful browser checks without
-   evidence. State whether the commit and push to `main` succeeded. Do not perform
-   additional publication or deployment actions unless requested.
+   evidence. Verify that remote `main` contains the intended commit before stating
+   that publication succeeded. State whether the commit and push to `main`
+   succeeded. Do not perform additional publication or deployment actions unless
+   requested.
 
 ## Boundaries and requirements
 
