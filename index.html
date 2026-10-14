@@ -166,9 +166,14 @@
       background: var(--cp-surface);
     }
 
-    .tokens-panel {
+    .tokens-panel,
+    .discount-panel {
       padding: 24px;
       margin-bottom: 24px;
+    }
+
+    .discount-panel .field {
+      max-width: 320px;
     }
 
     .section-heading {
@@ -495,7 +500,8 @@
       }
 
       .models-header,
-      .tokens-panel {
+      .tokens-panel,
+      .discount-panel {
         padding: 20px;
       }
     }
@@ -560,6 +566,21 @@
           <label for="cached-output-tokens">Cached output</label>
           <input id="cached-output-tokens" data-volume="cacheWrite" type="text" value="0" inputmode="decimal" autocomplete="off">
         </div>
+      </div>
+    </section>
+
+    <section class="panel discount-panel" id="discount-panel" aria-labelledby="discount-title" hidden>
+      <div class="section-heading">
+        <div>
+          <h2 id="discount-title">Discount</h2>
+          <p class="section-description" id="discount-description">
+            Apply a discount to all model prices, USD costs and AI Credits.
+          </p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="discount">Discount (%)</label>
+        <input id="discount" type="number" min="0" max="100" step="any" value="0" inputmode="decimal" autocomplete="off" aria-describedby="discount-description" disabled>
       </div>
     </section>
 
@@ -680,6 +701,14 @@
     const emptyState = document.getElementById("empty-state");
     const sortButtons = [...document.querySelectorAll("[data-sort-key]")];
     const modelShares = models.map(() => 100);
+    // URLSearchParams decodes literal "+" separators as spaces.
+    const featureFlags = new Set(
+      (new URLSearchParams(window.location.search).get("ff") || "").split(/[+\s]+/)
+    );
+    const discountEnabled = featureFlags.has("d");
+    const discountInput = document.getElementById("discount");
+    document.getElementById("discount-panel").hidden = !discountEnabled;
+    discountInput.disabled = !discountEnabled;
     let activeSort = { key: null, direction: null };
 
     const priceFormatter = new Intl.NumberFormat("en-US", {
@@ -745,6 +774,24 @@
       );
     }
 
+    function getDiscount() {
+      const value = Number.parseFloat(discountInput.value);
+      return discountEnabled && Number.isFinite(value)
+        ? Math.min(100, Math.max(0, value))
+        : 0;
+    }
+
+    function getDiscountedModel(model) {
+      const discountedModel = { ...model };
+      const factor = 1 - getDiscount() / 100;
+      for (const costType of ["input", "cachedInput", "cacheWrite", "output"]) {
+        if (discountedModel[costType] !== null) {
+          discountedModel[costType] *= factor;
+        }
+      }
+      return discountedModel;
+    }
+
     function priceContent(price, volume) {
       if (price === null) {
         return "Not applicable";
@@ -781,7 +828,7 @@
     }
 
     function updateRenderedRow(row, modelIndex) {
-      const model = models[modelIndex];
+      const model = getDiscountedModel(models[modelIndex]);
       const volumes = getVolumes();
       const factor = modelShares[modelIndex] / 100;
       const volumeByCost = {
@@ -807,7 +854,7 @@
       const volumes = getVolumes();
       const query = modelSearch.value.trim().toLocaleLowerCase();
       const visibleModels = models
-        .map((model, modelIndex) => ({ ...model, modelIndex }))
+        .map((model, modelIndex) => ({ ...getDiscountedModel(model), modelIndex }))
         .filter((model) =>
           [model.provider, model.model, model.tier]
             .join(" ")
@@ -884,6 +931,14 @@
 
     modelSearch.addEventListener("input", renderModels);
 
+    if (discountEnabled) {
+      discountInput.addEventListener("input", renderModels);
+      discountInput.addEventListener("change", () => {
+        discountInput.value = String(getDiscount());
+        renderModels();
+      });
+    }
+
     tableBody.addEventListener("input", (event) => {
       const input = event.target.closest("[data-share-index]");
       if (!input) {
@@ -925,6 +980,7 @@
       });
       modelShares.fill(100);
       modelSearch.value = "";
+      discountInput.value = "0";
       renderModels();
       volumeInputs[0].focus();
     });

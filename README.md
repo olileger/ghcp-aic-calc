@@ -18,6 +18,20 @@ Keep `favicon.ico` alongside `index.html` to display the GitHub logo in browser 
 and bookmarks. The icon is bundled from [GitHub's favicon](https://github.com/favicon.ico);
 the calculator does not fetch it from GitHub at runtime.
 
+### Optional discount
+
+Append `?ff=d` to the URL (for example, `http://localhost:8000/?ff=d` or
+`index.html?ff=d`) to show the **Discount** section between **Tokens** and **Models**.
+Enter a percentage from 0 to 100; fractional percentages are supported. The discount
+applies immediately to all displayed model rates, category subtotals, USD totals and
+AI Credits, while each model's share still applies independently. Unsupported cache
+writes remain "Not applicable". **Reset values** also resets the discount to 0%.
+
+Without the `d` feature flag, the section is hidden and no discount applies.
+Feature flags use `+` separators, such as `?ff=d+f+g+e`; only `d` is currently
+implemented and unknown flags are ignored. If the URL already has query parameters,
+append `&ff=d` instead. This also works when opening the calculator directly as a file.
+
 ## GitHub Pages
 
 In the repository settings, enable **Pages**, choose **Deploy from a branch**, then select
@@ -82,10 +96,10 @@ gh aw compile update-copilot-models
 Do not edit the generated lock file manually. The calculator remains standalone:
 it does not fetch pricing at browser runtime or depend on the workflow to run.
 
-Run the dependency-free catalogue and publication guard checks with:
+Run the dependency-free calculator, catalogue and publication guard checks with:
 
 ```powershell
-node --test .github\scripts\model-catalogue.test.cjs
+node --test .github\scripts\calculator.test.cjs .github\scripts\model-catalogue.test.cjs
 ```
 
 ## Copilot agent and skills
@@ -113,5 +127,5 @@ but listing them in its profile does not automatically load them.
 These are repository-local instructions, not a separate installation or an SDP
 catalogue package. No MCP server, credentials, or additional application dependency
 is required. Pricing verification needs access to public GitHub documentation;
-UI checks need a browser. The skills contain procedures and numerical fixtures,
-not a bundled automated test suite.
+UI checks need a browser. The skills contain procedures and numerical fixtures;
+the dependency-free checks above cover calculator behavior and catalogue publication.
