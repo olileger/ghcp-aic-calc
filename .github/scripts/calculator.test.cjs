@@ -53,6 +53,30 @@ function calculator(search = "") {
   return { context, ids, volumes, sortButtons };
 }
 
+test("token and discount sections use independent, initially open disclosures", () => {
+  for (const [panel, title, controls] of [
+    ["tokens", "Tokens (in million)", [
+      "reset-button", "input-tokens", "output-tokens", "cached-input-tokens", "cached-output-tokens"
+    ]],
+    ["discount", "Discount", ["discount"]]
+  ]) {
+    const section = html.match(
+      new RegExp(`<section class="panel ${panel}-panel"[^>]*>([\\s\\S]*?)</section>`)
+    )?.[1];
+    assert(section, `${panel} section must exist`);
+    const disclosure = section.match(/<details class="collapsible-section" open>([\s\S]*?)<\/details>/)?.[1];
+    assert(disclosure, `${panel} must start expanded without a shared disclosure group`);
+    const summary = disclosure.match(/^\s*<summary>([\s\S]*?)<\/summary>/);
+    assert(summary, `${panel} must have a native summary as its first child`);
+    assert(summary[1].includes(`<h2 id="${panel}-title">${title}</h2>`));
+    const content = disclosure.slice(summary[0].length);
+    assert.match(content, /class="section-description"/);
+    for (const id of controls) {
+      assert(content.includes(`id="${id}"`), `${id} must collapse with its section content`);
+    }
+  }
+});
+
 test("discount is opt-in and plus-separated flags match whole names", () => {
   assert.match(html, /<section class="panel discount-panel"[^>]* hidden>/);
   assert.match(html, /<input id="discount"[^>]*min="0" max="100" step="any"/);

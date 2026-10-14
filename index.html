@@ -176,6 +176,43 @@
       max-width: 320px;
     }
 
+    .collapsible-section > summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 32px;
+      border-radius: 4px;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .collapsible-section > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .collapsible-section > summary::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 0.45rem;
+      height: 0.45rem;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(-45deg);
+    }
+
+    .collapsible-section[open] > summary::before {
+      transform: rotate(45deg);
+    }
+
+    .collapsible-section > summary:hover {
+      color: var(--cp-accent);
+    }
+
+    .collapsible-section > summary:focus-visible {
+      outline: 2px solid var(--cp-accent);
+      outline-offset: 4px;
+    }
+
     .section-heading {
       display: flex;
       align-items: flex-start;
@@ -540,48 +577,52 @@
     </header>
 
     <section class="panel tokens-panel" aria-labelledby="tokens-title">
-      <div class="section-heading">
-        <div>
+      <details class="collapsible-section" open>
+        <summary>
           <h2 id="tokens-title">Tokens (in million)</h2>
+        </summary>
+        <div class="section-heading">
           <p class="section-description">
             Enter token volumes in millions. Results are recalculated with every change.
           </p>
+          <button class="reset-button" id="reset-button" type="button">Reset values</button>
         </div>
-        <button class="reset-button" id="reset-button" type="button">Reset values</button>
-      </div>
-      <div class="input-grid">
-        <div class="field">
-          <label for="input-tokens">Input token</label>
-          <input id="input-tokens" data-volume="input" type="text" value="0" inputmode="decimal" autocomplete="off">
+        <div class="input-grid">
+          <div class="field">
+            <label for="input-tokens">Input token</label>
+            <input id="input-tokens" data-volume="input" type="text" value="0" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="output-tokens">Output token</label>
+            <input id="output-tokens" data-volume="output" type="text" value="0" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="cached-input-tokens">Cached input</label>
+            <input id="cached-input-tokens" data-volume="cachedInput" type="text" value="0" inputmode="decimal" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="cached-output-tokens">Cached output</label>
+            <input id="cached-output-tokens" data-volume="cacheWrite" type="text" value="0" inputmode="decimal" autocomplete="off">
+          </div>
         </div>
-        <div class="field">
-          <label for="output-tokens">Output token</label>
-          <input id="output-tokens" data-volume="output" type="text" value="0" inputmode="decimal" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="cached-input-tokens">Cached input</label>
-          <input id="cached-input-tokens" data-volume="cachedInput" type="text" value="0" inputmode="decimal" autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="cached-output-tokens">Cached output</label>
-          <input id="cached-output-tokens" data-volume="cacheWrite" type="text" value="0" inputmode="decimal" autocomplete="off">
-        </div>
-      </div>
+      </details>
     </section>
 
     <section class="panel discount-panel" id="discount-panel" aria-labelledby="discount-title" hidden>
-      <div class="section-heading">
-        <div>
+      <details class="collapsible-section" open>
+        <summary>
           <h2 id="discount-title">Discount</h2>
+        </summary>
+        <div class="section-heading">
           <p class="section-description" id="discount-description">
             Apply a discount to all model prices, USD costs and AI Credits.
           </p>
         </div>
-      </div>
-      <div class="field">
-        <label for="discount">Discount (%)</label>
-        <input id="discount" type="number" min="0" max="100" step="any" value="0" inputmode="decimal" autocomplete="off" aria-describedby="discount-description" disabled>
-      </div>
+        <div class="field">
+          <label for="discount">Discount (%)</label>
+          <input id="discount" type="number" min="0" max="100" step="any" value="0" inputmode="decimal" autocomplete="off" aria-describedby="discount-description" disabled>
+        </div>
+      </details>
     </section>
 
     <section class="panel" aria-labelledby="models-title">

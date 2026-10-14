@@ -18,6 +18,12 @@ Keep `favicon.ico` alongside `index.html` to display the GitHub logo in browser 
 and bookmarks. The icon is bundled from [GitHub's favicon](https://github.com/favicon.ico);
 the calculator does not fetch it from GitHub at runtime.
 
+The **Tokens** and **Discount** sections start expanded. Click their arrow or title
+to collapse or expand each section independently; only the title and arrow remain
+visible when collapsed. The same controls work with Enter or Space on the keyboard.
+Collapsing a section preserves its entered values and does not change the calculations.
+The **Discount** section is available only when enabled as described below.
+
 ### Optional discount
 
 Append `?ff=d` to the URL (for example, `http://localhost:8000/?ff=d` or
