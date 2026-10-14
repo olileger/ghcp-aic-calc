@@ -893,15 +893,15 @@
 
     function renderModels() {
       const volumes = getVolumes();
-      const query = modelSearch.value.trim().toLocaleLowerCase();
+      const queryTerms = modelSearch.value.trim().toLocaleLowerCase().split(/\s+/);
       const visibleModels = models
         .map((model, modelIndex) => ({ ...getDiscountedModel(model), modelIndex }))
-        .filter((model) =>
-          [model.provider, model.model, model.tier]
+        .filter((model) => {
+          const searchableText = [model.provider, model.model, model.tier]
             .join(" ")
-            .toLocaleLowerCase()
-            .includes(query)
-        )
+            .toLocaleLowerCase();
+          return queryTerms.every((term) => searchableText.includes(term));
+        })
         .map((model) => {
           const total = calculateTotal(model, volumes, modelShares[model.modelIndex]);
           return { ...model, total };

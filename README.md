@@ -24,6 +24,16 @@ visible when collapsed. The same controls work with Enter or Space on the keyboa
 Collapsing a section preserves its entered values and does not change the calculations.
 The **Discount** section is available only when enabled as described below.
 
+### Model search
+
+Search matches the provider, model name, and context tier without regard to case.
+Whitespace separates search terms with **AND**: every term must match the same row,
+in any order. For example, `Anthropic 5.5` shows only Anthropic models containing
+`5.5`, and `OpenAI 5.5` shows only OpenAI models containing `5.5`.
+Use `OpenAI 5.5 long context` to narrow the results to that context tier.
+Extra spaces are ignored; an empty search shows all models.
+Filtering preserves each model's share and the selected sort order.
+
 ### Optional discount
 
 Append `?ff=d` to the URL (for example, `http://localhost:8000/?ff=d` or

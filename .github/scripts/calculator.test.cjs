@@ -174,6 +174,58 @@ test("incremental share updates agree with rendering after a discount", () => {
   assert.match(rendered, /data-credits>343\.00</);
 });
 
+test("search requires every whitespace-separated term across provider, model and tier", () => {
+  const { context, ids } = calculator();
+  const catalogue = [
+    ["OpenAI", "GPT-5.5", "Default"],
+    ["OpenAI", "GPT-5.5", "Long context"],
+    ["Anthropic", "Claude Sonnet 5.5", "Default"],
+    ["Anthropic", "Claude Haiku 4.5", "Default"],
+    ["Anthropic", "Claude Haiku 5.5", "Long context"],
+    ["Moonshot AI", "Kimi K3", "Default"]
+  ].map(([provider, model, tier]) => ({
+    provider, model, tier, threshold: "Not applicable",
+    input: 1, cachedInput: 0.1, cacheWrite: null, output: 2
+  }));
+  vm.runInContext(`models.splice(0, models.length, ...${JSON.stringify(catalogue)});`, context);
+
+  for (const [query, expected] of [
+    ["Anthropic 5.5", [2, 4]],
+    ["OpenAI 5.5", [0, 1]],
+    ["5.5 Anthropic", [2, 4]],
+    ["  oPeNaI   5.5  ", [0, 1]],
+    ["OpenAI\t5.5\nlong   context", [1]],
+    ["context long", [1, 4]],
+    ["Anthropic Haiku 5.5", [4]],
+    ["Moonshot AI", [5]],
+    ["Claude Sonnet", [2]],
+    ["5.5", [0, 1, 2, 4]],
+    ["haik", [3, 4]],
+    ["OpenAI Anthropic", []],
+    ["OpenAI 5.5 missing", []],
+    ["5x5", []],
+    ["", [0, 1, 2, 3, 4, 5]],
+    [" \t\n ", [0, 1, 2, 3, 4, 5]]
+  ]) {
+    ids["model-search"].value = query;
+    ids["model-search"].dispatch("input");
+    const indices = [...ids["models-body"].innerHTML.matchAll(/<tr data-model-index="(\d+)">/g)]
+      .map((match) => Number(match[1]));
+    assert.deepEqual(indices, expected, query);
+    assert.equal(ids["model-count"].textContent,
+      `${expected.length} model${expected.length === 1 ? "" : "s"}`, query);
+    assert.equal(ids["empty-state"].hidden, expected.length > 0, query);
+  }
+
+  vm.runInContext("modelShares[1] = 37.5;", context);
+  ids["model-search"].value = "Anthropic 5.5";
+  ids["model-search"].dispatch("input");
+  ids["model-search"].value = "OpenAI 5.5";
+  ids["model-search"].dispatch("input");
+  const preservedRow = ids["models-body"].innerHTML.match(/<tr data-model-index="1">([\s\S]*?)<\/tr>/)[1];
+  assert.match(preservedRow, /value="37\.5"/);
+});
+
 test("filtering, sorting, clearing and reset preserve their contracts with a discount", () => {
   const { ids, volumes, sortButtons } = calculator("?ff=d");
   volumes[0].value = "1";
