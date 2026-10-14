@@ -14,6 +14,10 @@ python -m http.server 8000
 
 Then open `http://localhost:8000`.
 
+Keep `favicon.ico` alongside `index.html` to display the GitHub logo in browser tabs
+and bookmarks. The icon is bundled from [GitHub's favicon](https://github.com/favicon.ico);
+the calculator does not fetch it from GitHub at runtime.
+
 ## GitHub Pages
 
 In the repository settings, enable **Pages**, choose **Deploy from a branch**, then select
